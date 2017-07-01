@@ -4,19 +4,20 @@ var HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = {
 	devtool: 'eval_source_map',
-	context: path.join(__dirname,'./components/'), 
-	entry:{
-		app: './app.js',
-	},
+	context: path.join(__dirname,'./views/'), 
+	entry:[
+	path.join(__dirname,'views/index.js')
+	],
 	output: {
 		path: path.join(__dirname, 'dist'),
-		filename: '[name].bundle.js'
+		filename: '[name].bundle.js',
+		publicPath: '/'
 	},
 	module:{
 		loaders: [{
 			test: /\.js$/,
 			loader: 'babel-loader',
-			include: path.join(__dirname, 'components'),
+			include: path.join(__dirname, 'views'),
 			query: {
 				presets: ['latest','react']
 			}
@@ -29,7 +30,7 @@ module.exports = {
 	},
 	plugins: [
 		new HtmlWebpackPlugin({
-			template: path.join(__dirname, 'components/index.html'),
+			template: path.join(__dirname, 'views/index.html'),
 			hash:true
 		}),
 		new webpack.optimize.OccurrenceOrderPlugin(),
