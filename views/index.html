@@ -1,10 +1,214 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>webpack</title>
+<title>BarChart</title>
+<style>
+	body {
+  background: #353535;
+  padding-top: 50px;
+  height: 700px;
+  min-width: 1250px;
+}
+svg {
+  background-color: #2D4654;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+.axis text {
+  font: 15px sans-serif;
+}
+.notes {
+  font-size: 12px;
+  font-family: sans-serif;
+  color: steelblue;
+  padding: 3px;
+  text-align: center;
+}
+.barRect:hover {
+  fill: #FCECC9 !important;
+}
+.AxisStyle {
+	font-family: 'Josephin Sans', sans-serif;
+  font-size: 16px;
+  fill: #FCECC9;
+}
+.toolTip {
+	font-family: 'Josephin Sans', sans-serif;
+  position: absolute;
+  background: rgb(30,30,30);
+  padding: 7px;
+  color: #FCECC9;
+  width: 165px;
+  border-radius: 10px;
+  opacity: 0;
+  border: .8px solid #FCECC9;
+}
+.title {
+	font-family: 'Josephin Sans', sans-serif;
+  fill: #F2626F !important;
+  font-size: 35px;
+  right: 50px;
+}</style>
+<script type="text/javascript" src="https://d3js.org/d3.v3.js" charset="utf-8"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
 </head>
 <body>
-<h1>Webpack</h1>
-<div id="root"></div>
+<script type="text/javascript">
+d3.json("https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/GDP-data.json", function(error, data) { 
+    var result = data.data;
+generateToolTip(result);  
+function generateToolTip(array) {
+        for (var i = 0; i < array.length; i++) {
+            var str = String(array[i]);
+            //console.log(str)
+            var year = str.substr(0,4);
+            //console.log(year)
+            var month = str.substr(5,2);
+            var GDP = array[i][1];
+            // console.log(array[i])
+            var GDPstr = "$" + GDP + " Billion USD";
+            var dateStr = '';
+            parseDate(month, year);
+            function parseDate(month, year) {
+                dateStr = year;
+                return dateStr;
+            }
+        var finalStr = dateStr + '<br>' + GDPstr;
+        array[i].push(finalStr);
+        }
+        return array;
+    }//end ToolTip  
+var tooltip = d3.select('body').append('div')
+      .attr('class', 'toolTip')    
+var myData = [];    
+    for (var i = 0; i < result.length; i++) {
+      myData[i] = result[i][1];
+    }//my data    
+    console.log(myData)
+var margin = {
+			top: 30,
+			right: 30,
+			bottom: 40,
+			left: 75
+		}
+		var height = 600 - margin.top - margin.bottom;
+		var width = 1100 - margin.right - margin.left;
+		var barWidth = 2;
+		var barOffset = 5;
+		var animateDuration = 15;
+		var animateDelay = 8;
+//Settings^^		
+//Scales
+var xScale = d3.scale.ordinal()
+			.domain(d3.range(0, myData.length))
+			.rangeBands([0, width])
+var yScale = d3.scale.linear()
+			.domain([0, d3.max(myData)])
+			.range([0, height]);			
+//Bar Gradient
+var colors = d3.scale.linear()
+			.domain([0, myData.length])
+			.range(['#44AFAF','#2FBF71'])
+//Build chart			
+console.log()
+	var myChart = d3.select('#chart').append('svg')
+    	.attr('width', 1100)
+		.attr('height', 600)
+		.append('g')    	
+		.attr('transform', 'translate('+margin.left+','+margin.top+')')
+		.style('background', '#FFF07C')
+    .selectAll('rect')
+    		.data(myData)
+    		.enter().append('rect')
+    	.attr('class', 'barRect')
+    	.style('stroke','#3C9B9B')
+    	.style('stroke-width', '1px')
+						.style('fill', function(d, i){
+							return colors(i);
+						})
+						.attr('width', xScale.rangeBand() + .5)
+						.attr('height', 0)
+						.attr('x', function(d, i) {
+							return xScale(i);
+						})
+						.attr('y', height)
+		.on('mouseover', function(d, i){
+					tooltip.transition()
+						.style('opacity', 1)
+					tooltip.html(result[i][2])
+						.style('left', (d3.event.pageX)+'px')
+						.style('top', (d3.event.pageY+'px'))
+					d3.select(this).style('opacity', 1)
+				})						
+
+	myChart.transition()
+				.attr('height', function(d) {
+					return yScale(d);
+				})
+				.attr('y', function(d) {
+					return height - yScale(d)
+				})
+				.duration(animateDuration)
+				.delay(function(d, i){
+					return i * animateDelay;
+				})								
+//Build X and Y Axis
+	var yAxisScale = d3.scale.linear()
+			.domain([0, d3.max(myData)])
+			.range([height, 0]);  
+	// Y Axis
+	var yAxis = d3.svg.axis()
+		.scale(yAxisScale)
+		.orient('left')
+		.ticks(10)
+		.tickPadding(8)		
+	var yGuide = d3.select('svg')
+		.append('g')
+				yAxis(yGuide)
+				yGuide.attr('transform','translate(' + margin.left + ',' + margin.top + ')')
+		.attr('class', 'AxisStyle')
+				yGuide.selectAll('path')
+					.style('fill', 'none')
+					.style('stroke', '#F2626F')
+				yGuide.selectAll('line')
+					.style('stroke', '#F2626F')		
+	// X Axis					
+	var xAxisScale = d3.scale.ordinal()
+		.domain(d3.range(1947, 2016))
+		.rangeBands([0, width])					
+var xAxis = d3.svg.axis()
+			.scale(xAxisScale)
+			.orient('bottom')
+      .tickPadding(7)
+			.tickValues(xAxisScale.domain().filter(function(d, i){
+				return !(i % (6));
+			}));		
+	var xGuide = d3.select('svg')
+			.append('g')
+				xAxis(xGuide)
+				xGuide.attr('transform','translate(' + margin.left + ',' + (height + margin.top) + ')')
+          .attr('class', 'AxisStyle')
+				xGuide.selectAll('path')
+					.style('fill', 'none')
+					.style('stroke', '#F2626F')
+				xGuide.selectAll('line')
+					.style('stroke', '#F2626F')			
+    d3.select("svg").append("text")
+        .attr("x", 90)				
+        .attr("y", 50)
+        .attr('class', 'title')
+        .text("US Gross Domestic Product");					
+	d3.select(".notes")
+      .append("text")
+      .text(data.description);        
+})
+</script>
+<div id="root"></div> 
+<div>
+<div id="chart"></div>
+<div class="notes"></div>
+</div>
 </body>
 </html>
+

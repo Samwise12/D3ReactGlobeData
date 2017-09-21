@@ -19,9 +19,12 @@ module.exports = {
 			loader: 'babel-loader',
 			include: path.join(__dirname, 'views'),
 			query: {
-				presets: ['latest','react']
-			}
-			}],
+				presets: ['latest','react','stage-2']
+			}},
+ 			{ test: /\.scss?$/,
+        loader: 'style-loader!css-loader!sass-loader',
+        include: path.join(__dirname, 'views', 'styles') }
+        ],
 	},
 	devServer: {
 		contentBase: path.join(__dirname, 'dist'),

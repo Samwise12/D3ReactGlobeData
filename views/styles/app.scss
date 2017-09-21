@@ -1,0 +1,37 @@
+body {
+  background: #353535;
+  padding-top: 50px;
+  height: 700px;
+  min-width: 1250px;
+}
+svg {
+  background-color: #2D4654;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+.barRect:hover {
+  fill: #FCECC9 !important;
+}
+.AxisStyle {
+	font-family: 'Josephin Sans', sans-serif;
+  font-size: 16px;
+  fill: #FCECC9;
+}
+.toolTip {
+	font-family: 'Josephin Sans', sans-serif;
+  position: absolute;
+  background: rgb(30,30,30);
+  padding: 7px;
+  color: #FCECC9;
+  width: 165px;
+  border-radius: 10px;
+  opacity: 0;
+  border: .8px solid #FCECC9;
+}
+.title {
+	font-family: 'Josephin Sans', sans-serif;
+  fill: #F2626F !important;
+  font-size: 35px;
+  right: 50px;
+}
