@@ -9,5 +9,5 @@ npm install
 ```
 npm start
 ```
-![](images/filename Chart.png)
+![](images/Chart.png)
 
