@@ -21,6 +21,7 @@ npm install
 **Usage**
 ```
 npm start
+use http://localhost:3000/
 ```
 ![](images/scatterChart2.png)
 
