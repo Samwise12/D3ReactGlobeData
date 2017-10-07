@@ -3,14 +3,27 @@
 .subtitle {
 stroke: red;
 } 
-
+.heatMap {
+  background-color: #fafafa;
+}
+.label {
+  /*fill: black;*/
+  font-size: 8px;
+  /*text-anchor: middle;*/
+}
+.legendTitle {
+	font-size: 12px;
+}
 body {
   font-family: 'Roboto Condensed', 'Roboto', sans-serif;
   background-color: #dedede;
 }
-
 #chart {
   line-height: 0;
     background-color: #fcfcfc;
     margin: 0;
   }
+rect {
+  stroke-width: 0px;
+  cursor: pointer;
+}

@@ -16,6 +16,7 @@ class App extends React.Component {
 		height: 450,
 		showChart: false,		
 		cache: undefined,
+		degree: undefined,
 		tooltipShow: false,
 		tooltipHTML: '',
 		tooltipX: 0,
@@ -31,14 +32,16 @@ window.addEventListener('resize', this.componentDidMount.bind(this));
 	}	
 	componentDidUpdate(prevProps, prevState) {
 		if(this.state.showChart === false	||
-			 this.state.width === prevState.width) return; // width didn't change		
+			 this.state.width === prevState.width) return; 
 		d3.select('#chart svg').remove();
 		d3.select('#chart').append('svg')
 			.attr('width', this.state.width)
-			.attr('height', this.state.height + margin.top + margin.bottom)
+			.attr('height', this.state.height + margin.top + margin.bottom+50)
 
 		 if(typeof this.state.cache === 'undefined') {
 		 	d3.json(this.props.dataURL, data => {
+		 		 // console.log(data)
+	// data.map()		 		 
 		 		this.setState({ cache: data });
 		 		this.buildChart( data );
 		 	});
@@ -47,140 +50,187 @@ window.addEventListener('resize', this.componentDidMount.bind(this));
 		 }
 	}// end-componentDidUpdate	
 	buildChart(data) {
-		let that = this;		
+		let months = ['January','February','March','April','May','June','July',
+						'August','September','October','November','December'];
 		let {width,height} = {
 			width: this.state.width - margin.left - margin.right,
 			height: this.state.height - margin.top - margin.bottom
 		};
 		let {xMin, xMax} = {
-			xMin: d3.min(data, d=>d.Seconds),
-			xMax: d3.max(data, d=>d.Seconds) + 10
+			xMin: d3.min(data.monthlyVariance, d=>d.year),
+			xMax: d3.max(data.monthlyVariance, d=>d.year)
 		};
 		let {yMin,yMax} = {
-			yMin: d3.min(data, d=>d.Place),
-			yMax: d3.max(data, d=>d.Place) + 2
+			yMin: d3.min(data.monthlyVariance, d=>d.variance),
+			yMax: d3.max(data.monthlyVariance, d=>d.variance)
 		};
+		// let colorScale = d3.scaleLinear()
+		// 	.domain([yMin, d3.median([yMin,yMax]), yMax])
+		// 	.range(['#325D88','#fcf8e3','#d9534f']);		
+    	const colors = ["#5e4fa2", "#3288bd", "#66c2a5", "#abdda4",
+                "#e6f598", "#ffffbf", "#fee08b", "#fdae61",
+                "#f46d43", "#d53e4f", "#9e0142"];		                
+var colorScale = d3.scaleQuantize()
+    .domain([yMin + data.baseTemperature, yMax + data.baseTemperature])
+    .range(colors);
+// var colors2 = d3.scaleQuantile()
+
 		// Settings ^
-		let xScale = d3.scaleLinear()
-				.domain([ 2400, 2210 ])
+		let xScale = d3.scaleBand()
+				.domain(d3.range(xMin, xMax))
 				.range([0, width]);
 				/*console.log('xMax:', xMax)
-				console.log(xMax/60)
 				console.log('xMin:', xMin)*/
-		let yScale = d3.scaleLinear()
-				.domain([ yMax, yMin])
-				.range([height, 0]);
+		let yScale = d3.scaleBand()
+				.domain(d3.range(1, 13))
+				.range([0, height]);
 		// Scales ^
-let zeroFill = d3.format('0>2');
 		let xAxis = d3.select('svg')
 			.append('g')
-				.attr('transform', `translate(${margin.left},${margin.top})`)
+				.attr('transform', `translate(${margin.left},${margin.top+60})`)
 			.append('g')
 				.attr('transform',`translate(0,${height})`)
 				.call(
 					d3.axisBottom(xScale)
-					.tickValues(d3.range(xMin, xMax, width<300 ? 30 : width<600? 20 : 10))
-				 	.tickFormat(tick=>{
-				 	 // console.log(tick)
-				 	let time = new Date(2000,1,1,0,0, tick );
-				 	//console.log(time)
-				 	// console.log(`${zeroFill(time.getMinutes())}:${zeroFill(time.getSeconds())}`)
-				 	return `${zeroFill(time.getMinutes())}:${zeroFill(time.getSeconds())}`;
-				 })					
+					.tickValues(d3.range(xMin, xMax,  21 ))				 	
 					)
+				// console.log(width)
 		let yAxis = d3.select('svg')
 			.append('g')
-				.attr('transform', `translate(${margin.left},${margin.top})`)
+				.attr('transform', `translate(${margin.left},${margin.top+60})`)
 			.append('g')
 			.call(
-				d3.axisLeft(yScale)
-				.ticks(10)
+				d3.axisLeft(yScale)				
+				.tickFormat(t=>months[t-1]).tickSize(0)
 			);
 		let xAxisText = d3.select('svg')
 			.append('text')
 				.attr('text-anchor', 'middle')
 				.attr('x', Math.ceil((margin.left + width)/2))
-				.attr('y', this.state.height - 10)
-				.text('Time (minutes)')
+				.attr('y', this.state.height + 50)
+				.text('Years')
 		let yAxisText = d3.select('svg')
 			.append('g')
-				.attr('transform', `translate(20,${Math.ceil((margin.top+height)/2)})`)
+				.attr('transform', `translate(20,${Math.ceil((margin.top+height)/2+40)})`)
 			.append('text')
 				.attr('text-anchor', 'middle')
 				.attr('transform', 'rotate(-90)')
-				.text('Ranking')
+				.text('Months')
 		let titleText = d3.select('svg')				
 			.append('text')
 				.attr("x", (width / 2))
-			    .attr("y", -margin.top/2 + 35)
+			    .attr("y", -margin.top/2 + 20)
 			    .attr("text-anchor", "middle")
 			    .attr("class", "subtitle")
-			    .text("35 Fastest times up Alpe d'Huez");
+			    .text("Monthly Global Land-Surface Temperature");
+			d3.select('svg')				
+			.append('text')
+				.attr("x", (width / 2))
+			    .attr("y", -margin.top/2 + 40)
+			    .attr("text-anchor", "middle")
+			    .attr("class", "subtitle")
+			    .text("1753-2016");
+			d3.select('svg')				
+			.append('text')
+				.attr("x", (width / 2) + 80)
+			    .attr("y", -margin.top/2 + 60)
+			    .attr("text-anchor", "middle")
+			    .attr("class", "subtitle")
+			    .text("Temperature are in Celsius and reported as anomalies relative "
+			    	+"to the Jan 1951 - Dec 1980 average.");
+			d3.select('svg')				
+			.append('text')
+				.attr("x", (width / 2))
+			    .attr("y", -margin.top/2 + 80)
+			    .attr("text-anchor", "middle")
+			    .attr("class", "subtitle")
+			    .text("Estimated Jan 1951 - Dec 1980 absolute temperature °C 8.66 +/- 0.07");			    
 // let svg = d3.select('#chart svg');				
 		// Axes	^	
-		let redDotLegend = d3.select('svg')
+    let legend = d3.select('svg')
+  		.append('g')
+  			.attr('transform', `translate(${margin.left+300},${margin.top+65})`)
+  		.selectAll('.legend')
+  		.data(colors).enter()
+  		.append('rect')
+  		.attr('x', function (d,i) {
+		var ancho = width / 25;
+        	return (ancho * i) + (width / 4);
+  		})
+  		.attr('y', height + 40)
+  		.attr('width', width/25)
+  		.attr('height', 10)
+  		.style('fill', function(d, i) {
+  			return colors[i];
+  		});
+	let legendText = d3.select('svg')
+      // .attr('class', '.label')
+      // .style('background', '#fafafa')
+      .append('g')
+      .attr('transform', `translate(${margin.left+305},${margin.top+65})`)
+      .selectAll('.legend')
+      	.data(colors).enter()
+      	.append('text')
+      	.attr('class', 'label')
+      	.attr('x', function (d, i) {
+        var ancho = width / 25;
+        return (ancho * i) + (width / 4);
+      })
+      	.attr('y', height + 65)
+      	.text(function (d) {
+        var r = colorScale.invertExtent(d);
+        // console.log(Math.floor(r[0] * 10) / 10)
+        if(r[0].toFixed(1) == 1.7){
+        	return 0;
+        }
+        return (r[0].toFixed(1));
+      });      	  		
+    let legendTitle = d3.select('svg').append('g') 
+	.attr('transform', `translate(${margin.left+620},${margin.top+456})`)
+      .append('text')
+	      .attr('class', 'legendTitle')
+	      .attr('x', 30)
+	      .attr('y', 30)
+	      .text('Color Scale (ºC)');  		
+		//Legend^^
+	function getColor (d) {
+      var temp = (d.variance + data.baseTemperature).toFixed(3);
+      return colorScale(temp);
+    }		
+		let bars = d3.select('svg')
 			.append('g')
-				.attr('transform', `translate(${width+margin.left},${Math.ceil((margin.top+height)/2)+15})`)
-			.append('circle')
-				.attr('cx',-50).attr('cy',-5).attr('r',6).attr('fill','#cd181e')
-			d3.select('svg')//text
-			.append('g')
-			.attr('transform', `translate(${width+margin.left},${Math.ceil((margin.top+height)/2)+15})`)
-			.append('text')
-				.attr('x', -40).text('Doping Allegations');
-		let blueDotLegend = d3.select('svg')
-			.append('g')
-				.attr('transform', `translate(${width+margin.left},${Math.ceil((margin.top+height)/2)+15})`)
-			.append('circle')
-				.attr('cx',-50).attr('cy',15).attr('r',6).attr('fill','#0961aa')
-			d3.select('svg')
-			.append('g')
-			.attr('transform', `translate(${width+margin.left},${Math.ceil((margin.top+height)/2)+15})`)
-			.append('text')
-				.attr('x', -40)
-				.attr('y', 20)
-				.text('No Doping Allegations');				
-		//Info
-		let circles = d3.select('svg')
-			.append('g')
-				.attr('transform', `translate(${margin.left},${margin.top})`)
-			.selectAll('g').data(data).enter()
-			.append('circle')
-				.style('fill'  , d=>d.Doping===''? '#0961aa' : '#cd181e')
-				.attr('stroke' , d=>d.Doping===''? '#0961aa' : '#cd181e')
-				.attr('stroke-width', 2)
-				.attr('cx', d=>xScale(d.Seconds))
-				.attr('cy', d=>yScale(d.Place))
-				.attr('r', 5)
-				.on('mouseover', function(d) {
-					d3.select(this)
-						.attr('stroke', d3.color(d3.select(this).style('fill')).darker(3));
-		that.setState({
-			tooltipShow: true,
-			tooltipX   : d3.event.clientX,
-			tooltipY   : d3.event.clientY + 15,
-			tooltipHTML: (
-				<div>
-					<strong>{d.Name}</strong>, {d.Nationality}<br/>
-					<strong>Year:</strong> {d.Year}<br/>
-					<strong>Time:</strong> {d.Time}<br/>{d.Doping===''? '' : <br/>}
-					<strong>{d.Doping}</strong>
-				</div>
-					)
-		});						
-				})
-				.on('mouseout', function() {
-					d3.select(this).attr('stroke', d3.select(this).style('fill'));
-					that.setState({ tooltipShow: false });
-				})			
+				.attr('transform', `translate(${margin.left},${margin.top+60})`)
+			.selectAll('g').data(data.monthlyVariance).enter()
+			.append('rect')
+				// .style('fill', d=>colorScale(d.variance))
+				.attr('x', d=>xScale(d.year))
+				.attr('y',d=>yScale(d.month))
+				.attr('width', xScale.bandwidth)
+				.attr('height', yScale.bandwidth)    
+				.attr("fill", d=>getColor(d))				
+			.on('mouseover', d=> {
+				this.setState({
+					tooltipShow: true,
+					tooltipX: d3.event.clientX +13,
+					tooltipY: d3.event.clientY -35,
+					tooltipHTML: (
+						<span>
+							Year <strong>{d.year} ─ {months[d.month-1]}</strong><br/>
+							<strong>{(data.baseTemperature + d.variance).toFixed(3)}</strong> °C<br/>
+							<small>{d.variance} °C</small>
+						</span>
+					)					
+				});				
+			})
+			.on('mouseout', d=>this.setState({ tooltipShow: false }))			
 		//toolTip
-		 // console.log(document)
+		 console.log(document)
 	}		
 	render() {
-		console.log(this.state)
+		// console.log(this.state.width)
 		return(			
-			<Panel header={<h3>Doping in Professional Bicycle Racing</h3>}>			
-				<Tooltip id='tooltip' placement='top' className='in'
+			<Panel header={<h1>FreeCodeCamp Heat Map</h1>}>			
+				<Tooltip id='tooltip' placement='left' className='in'
 					style={{
 						display	: this.state.tooltipShow ? 'block' : 'none',
 						position: 'fixed',
@@ -189,7 +239,7 @@ let zeroFill = d3.format('0>2');
 						width: 190
 					}}
 				>{this.state.tooltipHTML}</Tooltip>			
-				<div id="chart" style={{width: '100%'}} />			
+				<div id="chart" className='panel panel-default' />			
 			</Panel>
 		);
 	}
