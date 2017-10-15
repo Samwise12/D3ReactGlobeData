@@ -2,245 +2,175 @@ import ReactDOM from 'react-dom';
 import React, {Component} from 'react';
 import axios from 'axios';
 import lodash from 'lodash';
-import ReactBootstrap, { Panel, Tooltip } from 'react-bootstrap';
+import ReactBootstrap, { Panel, Tooltip, Navbar, Button, Grid, Row, Col } from 'react-bootstrap';
 
 import '../styles/app.scss';
 		
-var margin = { top: 15, right: 120, bottom: 45, left: 50 };
-//Global Var ^^
-class App extends React.Component {
+class App extends React.PureComponent {
 	constructor() {
 		super();
 		this.state = {
-		width: 0,
-		height: 450,
-		showChart: false,		
-		cache: undefined,
-		degree: undefined,
-		tooltipShow: false,
-		tooltipHTML: '',
-		tooltipX: 0,
-		tooltipY: 0
+			width: 550,
+			height: 500,
+			globeData: undefined,
+			meteoriteData: undefined,
+			tooltipShow: false,
+			tooltipHTML: '',
+			tooltipX: 0,
+			tooltipY: 0,
+			update: true
 		};
 	}
-	componentDidMount() {	
-window.addEventListener('resize', this.componentDidMount.bind(this));		
-		this.setState({
-			width: d3.select("#chart").property('clientWidth'),
-			showChart: true
-		});
-	}	
+	componentDidMount() {
+		d3.select('#svg-globe')
+			.append('svg')
+			.attr('width' , this.state.width+270)
+			.attr('height', this.state.height+30)
+		d3.json(this.props.dataURL.globeData,  data=>this.setState({ globeData: data }));
+		d3.json(this.props.dataURL.meteoriteData, data=>this.setState({ meteoriteData: data }));
+	}
 	componentDidUpdate(prevProps, prevState) {
-		if(this.state.showChart === false	||
-			 this.state.width === prevState.width) return; 
-		d3.select('#chart svg').remove();
-		d3.select('#chart').append('svg')
-			.attr('width', this.state.width)
-			.attr('height', this.state.height + margin.top + margin.bottom+50)
+		if(typeof this.state.globeData  === 'undefined' ||
+		   typeof this.state.meteoriteData === 'undefined' || 
+		   this.state.update === false) return;
+		let width = this.state.width, height = this.state.height,
+		 proj  = d3.geoOrthographic().translate([0,0]).scale((height/2)-8),
+		 dots = d3.geoOrthographic().translate([0,0]).scale((height/2)+8 ),
+		 path  = d3.geoPath().projection(proj),
+		 countries = topojson.feature(this.state.globeData, this.state.globeData.objects.countries).features,
+		 meteorites = this.state.meteoriteData.features;		
 
-		 if(typeof this.state.cache === 'undefined') {
-		 	d3.json(this.props.dataURL, data => {
-		 		 // console.log(data)
-	// data.map()		 		 
-		 		this.setState({ cache: data });
-		 		this.buildChart( data );
-		 	});
-		 } else {
-		 	this.buildChart( this.state.cache );
-		 }
-	}// end-componentDidUpdate	
-	buildChart(data) {
-		let months = ['January','February','March','April','May','June','July',
-						'August','September','October','November','December'];
-		let {width,height} = {
-			width: this.state.width - margin.left - margin.right,
-			height: this.state.height - margin.top - margin.bottom
-		};
-		let {xMin, xMax} = {
-			xMin: d3.min(data.monthlyVariance, d=>d.year),
-			xMax: d3.max(data.monthlyVariance, d=>d.year)
-		};
-		let {yMin,yMax} = {
-			yMin: d3.min(data.monthlyVariance, d=>d.variance),
-			yMax: d3.max(data.monthlyVariance, d=>d.variance)
-		};
-		// let colorScale = d3.scaleLinear()
-		// 	.domain([yMin, d3.median([yMin,yMax]), yMax])
-		// 	.range(['#325D88','#fcf8e3','#d9534f']);		
-    	const colors = ["#5e4fa2", "#3288bd", "#66c2a5", "#abdda4",
-                "#e6f598", "#ffffbf", "#fee08b", "#fdae61",
-                "#f46d43", "#d53e4f", "#9e0142"];		                
-var colorScale = d3.scaleQuantize()
-    .domain([yMin + data.baseTemperature, yMax + data.baseTemperature])
-    .range(colors);
-// var colors2 = d3.scaleQuantile()
+   let min = d3.min(meteorites, d=>parseInt(d.properties.mass));
+   let max = d3.max(meteorites, d=>parseInt(d.properties.mass));
+    let circleScale = d3.scaleLinear()
+     .clamp([true])
+     .domain([min, max / 200])
+     .range([1,6]);		     
 
-		// Settings ^
-		let xScale = d3.scaleBand()
-				.domain(d3.range(xMin, xMax))
-				.range([0, width]);
-				/*console.log('xMax:', xMax)
-				console.log('xMin:', xMin)*/
-		let yScale = d3.scaleBand()
-				.domain(d3.range(1, 13))
-				.range([0, height]);
-		// Scales ^
-		let xAxis = d3.select('svg')
+    function circle(r, properties) {
+      let points = [];
+      for(let angle=0; angle<=2*Math.PI; angle=angle+0.1) {
+        let x = r*Math.cos(angle);
+        let y = r*Math.sin(angle);
+        points.push(dots([properties.reclong-x, properties.reclat-y]));
+      }
+      return points.join(',');
+    }    
+
+		let water = d3.select('svg')
 			.append('g')
-				.attr('transform', `translate(${margin.left},${margin.top+60})`)
-			.append('g')
-				.attr('transform',`translate(0,${height})`)
-				.call(
-					d3.axisBottom(xScale)
-					.tickValues(d3.range(xMin, xMax,  21 ))				 	
-					)
-				// console.log(width)
-		let yAxis = d3.select('svg')
-			.append('g')
-				.attr('transform', `translate(${margin.left},${margin.top+60})`)
-			.append('g')
-			.call(
-				d3.axisLeft(yScale)				
-				.tickFormat(t=>months[t-1]).tickSize(0)
-			);
-		let xAxisText = d3.select('svg')
-			.append('text')
-				.attr('text-anchor', 'middle')
-				.attr('x', Math.ceil((margin.left + width)/2))
-				.attr('y', this.state.height + 50)
-				.text('Years')
-		let yAxisText = d3.select('svg')
-			.append('g')
-				.attr('transform', `translate(20,${Math.ceil((margin.top+height)/2+40)})`)
-			.append('text')
-				.attr('text-anchor', 'middle')
-				.attr('transform', 'rotate(-90)')
-				.text('Months')
-		let titleText = d3.select('svg')				
-			.append('text')
-				.attr("x", (width / 2))
-			    .attr("y", -margin.top/2 + 20)
-			    .attr("text-anchor", "middle")
-			    .attr("class", "subtitle")
-			    .text("Monthly Global Land-Surface Temperature");
-			d3.select('svg')				
-			.append('text')
-				.attr("x", (width / 2))
-			    .attr("y", -margin.top/2 + 40)
-			    .attr("text-anchor", "middle")
-			    .attr("class", "subtitle")
-			    .text("1753-2016");
-			d3.select('svg')				
-			.append('text')
-				.attr("x", (width / 2) + 80)
-			    .attr("y", -margin.top/2 + 60)
-			    .attr("text-anchor", "middle")
-			    .attr("class", "subtitle")
-			    .text("Temperature are in Celsius and reported as anomalies relative "
-			    	+"to the Jan 1951 - Dec 1980 average.");
-			d3.select('svg')				
-			.append('text')
-				.attr("x", (width / 2))
-			    .attr("y", -margin.top/2 + 80)
-			    .attr("text-anchor", "middle")
-			    .attr("class", "subtitle")
-			    .text("Estimated Jan 1951 - Dec 1980 absolute temperature °C 8.66 +/- 0.07");			    
-// let svg = d3.select('#chart svg');				
-		// Axes	^	
-    let legend = d3.select('svg')
-  		.append('g')
-  			.attr('transform', `translate(${margin.left+300},${margin.top+65})`)
-  		.selectAll('.legend')
-  		.data(colors).enter()
-  		.append('rect')
-  		.attr('x', function (d,i) {
-		var ancho = width / 25;
-        	return (ancho * i) + (width / 4);
-  		})
-  		.attr('y', height + 40)
-  		.attr('width', width/25)
-  		.attr('height', 10)
-  		.style('fill', function(d, i) {
-  			return colors[i];
-  		});
-	let legendText = d3.select('svg')
-      // .attr('class', '.label')
-      // .style('background', '#fafafa')
-      .append('g')
-      .attr('transform', `translate(${margin.left+305},${margin.top+65})`)
-      .selectAll('.legend')
-      	.data(colors).enter()
-      	.append('text')
-      	.attr('class', 'label')
-      	.attr('x', function (d, i) {
-        var ancho = width / 25;
-        return (ancho * i) + (width / 4);
-      })
-      	.attr('y', height + 65)
-      	.text(function (d) {
-        var r = colorScale.invertExtent(d);
-        // console.log(Math.floor(r[0] * 10) / 10)
-        if(r[0].toFixed(1) == 1.7){
-        	return 0;
-        }
-        return (r[0].toFixed(1));
-      });      	  		
-    let legendTitle = d3.select('svg').append('g') 
-	.attr('transform', `translate(${margin.left+620},${margin.top+456})`)
-      .append('text')
-	      .attr('class', 'legendTitle')
-	      .attr('x', 30)
-	      .attr('y', 30)
-	      .text('Color Scale (ºC)');  		
-		//Legend^^
-	function getColor (d) {
-      var temp = (d.variance + data.baseTemperature).toFixed(3);
-      return colorScale(temp);
-    }		
-		let bars = d3.select('svg')
-			.append('g')
-				.attr('transform', `translate(${margin.left},${margin.top+60})`)
-			.selectAll('g').data(data.monthlyVariance).enter()
-			.append('rect')
-				// .style('fill', d=>colorScale(d.variance))
-				.attr('x', d=>xScale(d.year))
-				.attr('y',d=>yScale(d.month))
-				.attr('width', xScale.bandwidth)
-				.attr('height', yScale.bandwidth)    
-				.attr("fill", d=>getColor(d))				
-			.on('mouseover', d=> {
-				this.setState({
+				.attr('transform', `translate(${width/2+250},${height/2})`)
+			.append('circle')
+				.style('fill', '#00004d')
+				.attr('cx', 0)		
+				.attr('cy', 0)
+				.attr('r', (height/2)-8)				
+		let land = d3.select('svg')
+			 .append('g')
+			 	.attr('transform', `translate(${width/2+250},${height/2})`)
+			 .selectAll('path')
+			 .data(countries).enter().insert('path')
+			 	.style('fill', '#20a9df')
+        		.attr('stroke', 'black')
+        		.attr('stroke-width', '0.5')
+        		.attr('d', path);		
+        let polygon = d3.select('svg')
+        	 .append('g')
+        	 	.attr('transform', `translate(${width/2+250},${height/2})`)
+        	 .selectAll('polygon').data(meteorites)
+        	 .enter().insert('polygon')
+        	 	.style('fill' ,(_,index)=> {
+        	 		let color = d3.color(d3.schemeCategory20c[index % 20]);
+        	 		color.opacity = 0.5;
+        	 		return color;
+        	 	})
+        	 	.attr('points', d=> circle(0.1, d.properties))
+        	 	.style('display', d=> path(d) === undefined ? 'none': 'block' )
+        	 	.attr('stroke', (_,index)=>d3.schemeCategory20[index % 20])
+        	 	.attr('stroke-width', 1) 
+		let svg = d3.select('#svg-globe svg');
+		let that = this;
+	polygon.on('mouseover', function(d) {
+//console.log(Object.keys(svg))
+        if(svg.hasOwnProperty('movement')) return;
+		that.setState({
 					tooltipShow: true,
-					tooltipX: d3.event.clientX +13,
-					tooltipY: d3.event.clientY -35,
+					tooltipX: d3.event.clientX - 200,
+					tooltipY: d3.event.clientY - 40,
 					tooltipHTML: (
 						<span>
-							Year <strong>{d.year} ─ {months[d.month-1]}</strong><br/>
-							<strong>{(data.baseTemperature + d.variance).toFixed(3)}</strong> °C<br/>
-							<small>{d.variance} °C</small>
+							<strong>Name:</strong>{d.properties.name}<br/>
+							<strong>Year:</strong>{(new Date(d.properties.year)).getFullYear()}<br/>
+							<strong>Class.:</strong>{d.properties.recclass}<br/>
+							<strong>Mass:</strong>{d.properties.mass}g
 						</span>
-					)					
-				});				
-			})
-			.on('mouseout', d=>this.setState({ tooltipShow: false }))			
-		//toolTip
-		 console.log(document)
-	}		
+					)
+				});
+      })
+      .on('mouseout', d=>this.setState({ tooltipShow: false }));
+	polygon
+      .transition()
+      	.attr('points', d=>circle(circleScale(parseInt(d.properties.mass || 0)), d.properties))
+      .duration((_,index)=>{
+      	return 12*index;
+      })
+      .ease(d3.easeBounce)
+
+		svg.on('mousedown', ()=>{
+			if(!svg.hasOwnProperty('rotation'))
+				svg.rotation = {
+					x: 0,
+					y: 0
+				};
+			// console.log(Object.keys(svg))
+			svg.movement = true;
+			svg.mX = d3.event.clientX;
+			svg.mY = d3.event.clientY;
+			 // console.log('2: ',Object.keys(svg))
+		})	
+		d3.select(window).on('mousemove', ()=>{
+			if(!svg.hasOwnProperty('movement')) return;
+			let x = svg.mX - d3.event.clientX; 
+			let y = svg.mY - d3.event.clientY;
+			svg.mX = d3.event.clientX;
+			svg.mY = d3.event.clientY;			
+			if(x<0) svg.rotation.x = svg.rotation.x + 6;
+			if(x>0) svg.rotation.x = svg.rotation.x - 6;
+			if(y<0) svg.rotation.y = svg.rotation.y - 6;
+			if(y>0) svg.rotation.y = svg.rotation.y + 6;
+			if(svg.rotation.x < 0) svg.rotation.x * -1;
+			if(svg.rotation.y < 0) svg.rotation.y * -1;
+			svg.rotation = {
+				x: svg.rotation.x % 360,
+				y: svg.rotation.y % 360
+			}
+			// console.log(svg.rotation)
+			proj.rotate([svg.rotation.x,svg.rotation.y,0]);
+			dots.rotate([svg.rotation.x,svg.rotation.y,0]);
+			land.attr('d', path); // update graphic
+			polygon
+				.interrupt()
+				.style('display', d=>path(d)===undefined? 'none' : 'block')
+				.attr('points', d=>circle(circleScale(parseInt(d.properties.mass || 0)), d.properties))
+		}).on('mouseup', ()=> { delete(svg.movement); });		
+
+		this.setState({ update: false });
+		// console.log(document);
+	}//end componentDidUpdate
 	render() {
-		// console.log(this.state.width)
-		return(			
-			<Panel header={<h1>FreeCodeCamp Heat Map</h1>}>			
-				<Tooltip id='tooltip' placement='left' className='in'
-					style={{
-						display	: this.state.tooltipShow ? 'block' : 'none',
-						position: 'fixed',
-						left: this.state.tooltipX,
-						top	: this.state.tooltipY,
-						width: 190
-					}}
-				>{this.state.tooltipHTML}</Tooltip>			
-				<div id="chart" className='panel panel-default' />			
-			</Panel>
+		return(
+			<Grid>
+							<Tooltip id='tooltip' className='in' placement='left' 
+							style={{
+								display	: this.state.tooltipShow ? 'block': 'none',
+								position: 'fixed',
+								left: this.state.tooltipX,
+								top	: this.state.tooltipY,
+								width: 165
+							}}
+						>{this.state.tooltipHTML}</Tooltip>
+						<div id="svg-globe" />
+			</Grid>
 		);
 	}
 }

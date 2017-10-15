@@ -6,7 +6,8 @@ module.exports = {
 	devtool: 'eval_source_map',
 	context: path.join(__dirname,'./views/'), 
 	entry:[
-	path.join(__dirname,'views/index.js')
+	path.join(__dirname,'views/index.js'),
+	path.join(__dirname,'views/components/appNavbar.js')
 	],
 	output: {
 		path: path.join(__dirname, 'dist'),

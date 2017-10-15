@@ -1,18 +1,21 @@
-﻿# Visualize Data with a Heat Map
+﻿# Map Data Across the Globe
 
 ## Objective
 
-Build an app that is functionally similar to this: https://codepen.io/FreeCodeCamp/full/aNLYPp/.
+Build an app that is functionally similar to this: https://codepen.io/FreeCodeCamp/full/mVEJag.
 
 ## Requirements
 
-* User Story: I can view a heat map with data represented both on the Y and X axis.
+* User Story: I can see where all Meteorites landed on a world map.
 
-* User Story: Each cell is colored based its relationship to other data.
+* User Story: I can tell the relative size of the meteorite, just by looking at the way it's represented on the map.
 
-* User Story: I can mouse over a cell in the heat map to get more exact information.
+* User Story: I can mouse over the meteorite's data point for additional data.
 
-**Hint:** Here's a dataset you can use to build this: https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/global-temperature.json
+**Hint:** Here's a dataset you can use to build this: https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/meteorite-strike-data.json
+
+## Notes
+globeData: 'https://unpkg.com/world-atlas@1.1.4/world/110m.json'
 
 **Installation**
 ```
@@ -24,5 +27,5 @@ npm install
 npm start
 use http://localhost:3000/
 ```
-![](images/heatMap.png)
-
+![](images/Earth1.png)
+![](images/Earth2.png)
